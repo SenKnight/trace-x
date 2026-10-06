@@ -308,3 +308,18 @@ test("model discovery is not gated on a configured base URL", () => {
   assert.doesNotMatch(providerDetail, /!provider\.baseUrl\?\.trim\(\)/);
   assert.match(providerDetail, /Leave empty for a built-in provider to use the endpoint pi ships/);
 });
+
+test("fills model details from the provider's own list when models.dev has no match", () => {
+  const catalogFill = source.slice(
+    source.indexOf("const fetchProviderPreset"),
+    source.indexOf("const undoCatalogFill"),
+  );
+  // Reuses the discovery route so the provider credential resolves the same way
+  // the model list preview does, then matches the advertised entry by exact id.
+  assert.match(catalogFill, /\/api\/models-config\/discover/);
+  assert.match(catalogFill, /findDiscoveredModel\(data\.models, wanted\)/);
+  assert.match(catalogFill, /discoveryModelToPreset\(discovered\)/);
+  // The provider list only backs the fill when models.dev contributed nothing.
+  assert.match(catalogFill, /catalogFilled\.appliedCount > 0/);
+  assert.match(catalogFill, /presetSource: "provider"/);
+});

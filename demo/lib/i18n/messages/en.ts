@@ -549,6 +549,8 @@ export const enLocale: LocalePlugin = {
     "models.catalogFilled": "{count} fields filled",
     "models.catalogNoEmptyFields": "No empty fields to fill",
     "models.catalogNoExactMatch": "No exact models.dev match",
+    "models.catalogFromProviderList": "from the provider's model list",
+    "models.catalogNoProviderMatch": "no exact match in models.dev or the provider's model list",
     "models.catalogPriceProvider": "Price matched Provider {provider}",
     "models.catalogPriceBaseUrl": "Price matched Base URL to {provider}",
     "models.catalogPriceConsensus": "Price agreed by {support}/{total} records",

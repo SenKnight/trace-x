@@ -3,7 +3,11 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useI18n } from "@/hooks/useI18n";
 import type { ModelCatalogPreset, ModelCatalogRecommendation } from "@/lib/model-catalog";
-import type { DiscoveredModel } from "@/lib/model-discovery";
+import {
+  discoveryModelToPreset,
+  findDiscoveredModel,
+  type DiscoveredModel,
+} from "@/lib/model-discovery";
 import {
   getLastSettingsSelection,
   setLastSettingsSelection,
@@ -124,10 +128,18 @@ type ModelDiscoveryState =
   | { phase: "success"; models: DiscoveredModel[]; endpoint: string }
   | { phase: "error"; message: string };
 
+/** Where a filled preset came from: models.dev, or the provider's own list. */
+type CatalogPresetSource = "catalog" | "provider";
+
 type ModelCatalogState =
   | { phase: "idle" }
   | { phase: "loading" }
-  | { phase: "success"; recommendation: ModelCatalogRecommendation; appliedCount: number }
+  | {
+      phase: "success";
+      recommendation: ModelCatalogRecommendation;
+      appliedCount: number;
+      presetSource: CatalogPresetSource;
+    }
   | { phase: "error"; message: string };
 
 type Selection =
@@ -924,6 +936,21 @@ function ModelDetail({
     }
   }, [model, provider, providerName, testState.phase]);
 
+  // models.dev has no entry for a custom provider's id, so fall back to the
+  // provider's own model list, where a relay advertises the context window,
+  // output limit, vision and reasoning (but no price).
+  const fetchProviderPreset = useCallback(async (wanted: string): Promise<ModelCatalogPreset | null> => {
+    const res = await fetch("/api/models-config/discover", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ providerName, provider: { ...provider, models: undefined } }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json() as { models?: DiscoveredModel[] };
+    const discovered = data.models ? findDiscoveredModel(data.models, wanted) : undefined;
+    return discovered ? discoveryModelToPreset(discovered) : null;
+  }, [provider, providerName]);
+
   const handleCatalogFill = useCallback(async () => {
     const query = model.id.trim();
     if (!query || catalogState.phase === "loading") return;
@@ -939,22 +966,40 @@ function ModelDetail({
         setCatalogState({ phase: "error", message: data.error ?? `HTTP ${res.status}` });
         return;
       }
-      const filled = fillEmptyModelFields(model, data.recommendation.preset);
-      if (filled.appliedCount > 0) {
+
+      const catalogFilled = fillEmptyModelFields(model, data.recommendation.preset);
+      if (catalogFilled.appliedCount > 0) {
         catalogUndoRef.current = model;
-        onChange(filled.model);
+        onChange(catalogFilled.model);
+        setCostEditing(false);
+        setCatalogState({
+          phase: "success",
+          recommendation: data.recommendation,
+          appliedCount: catalogFilled.appliedCount,
+          presetSource: "catalog",
+        });
+        return;
+      }
+
+      const providerPreset = await fetchProviderPreset(query);
+      if (requestId !== catalogRequestIdRef.current) return;
+      const providerFilled = providerPreset ? fillEmptyModelFields(model, providerPreset) : null;
+      if (providerFilled && providerFilled.appliedCount > 0) {
+        catalogUndoRef.current = model;
+        onChange(providerFilled.model);
       }
       setCostEditing(false);
       setCatalogState({
         phase: "success",
         recommendation: data.recommendation,
-        appliedCount: filled.appliedCount,
+        appliedCount: providerFilled?.appliedCount ?? 0,
+        presetSource: "provider",
       });
     } catch (error) {
       if (requestId !== catalogRequestIdRef.current) return;
       setCatalogState({ phase: "error", message: error instanceof Error ? error.message : String(error) });
     }
-  }, [catalogState.phase, model, onChange, provider.baseUrl, providerName]);
+  }, [catalogState.phase, fetchProviderPreset, model, onChange, provider.baseUrl, providerName]);
 
   const undoCatalogFill = () => {
     const previous = catalogUndoRef.current;
@@ -966,10 +1011,16 @@ function ModelDetail({
 
   const catalogResultSummary = (() => {
     if (catalogState.phase !== "success") return null;
-    const { recommendation, appliedCount } = catalogState;
+    const { recommendation, appliedCount, presetSource } = catalogState;
     const applied = appliedCount > 0
       ? t("models.catalogFilled", { count: appliedCount })
       : t("models.catalogNoEmptyFields");
+    if (presetSource === "provider") {
+      const source = appliedCount > 0
+        ? t("models.catalogFromProviderList")
+        : t("models.catalogNoProviderMatch");
+      return `${applied} · ${source}`;
+    }
     if (recommendation.price.status === "unreliable") {
       const price = recommendation.price.reason === "no-exact-match"
         ? t("models.catalogNoExactMatch")
@@ -991,7 +1042,9 @@ function ModelDetail({
     : catalogResultSummary;
   const catalogStatusColor = catalogState.phase === "error"
     ? "#ef4444"
-    : catalogState.phase === "success" && catalogState.recommendation.price.status === "unreliable"
+    : catalogState.phase === "success"
+        && (catalogState.appliedCount === 0
+          || (catalogState.presetSource === "catalog" && catalogState.recommendation.price.status === "unreliable"))
       ? "#d97706"
       : "var(--text-dim)";
   const costFields = [

@@ -549,6 +549,8 @@ export const zhCNLocale: LocalePlugin = {
     "models.catalogFilled": "已填入 {count} 个字段",
     "models.catalogNoEmptyFields": "没有需要填入的空字段",
     "models.catalogNoExactMatch": "models.dev 中没有精确匹配",
+    "models.catalogFromProviderList": "来自服务商模型列表",
+    "models.catalogNoProviderMatch": "models.dev 和服务商模型列表中都没有精确匹配",
     "models.catalogPriceProvider": "价格已匹配 Provider {provider}",
     "models.catalogPriceBaseUrl": "价格已按 Base URL 匹配 {provider}",
     "models.catalogPriceConsensus": "价格得到 {support}/{total} 条记录支持",

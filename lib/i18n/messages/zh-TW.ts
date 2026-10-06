@@ -1150,6 +1150,8 @@ export const zhTWLocale: LocalePlugin = {
     "models.catalogFilled": "已填入 {count} 個欄位",
     "models.catalogNoEmptyFields": "沒有需要填入的空欄位",
     "models.catalogNoExactMatch": "models.dev 中沒有完全相符的項目",
+    "models.catalogFromProviderList": "來自服務商模型清單",
+    "models.catalogNoProviderMatch": "models.dev 和服務商模型清單中都找不到完全相符的項目",
     "models.catalogPriceProvider": "價格與 Provider {provider} 相符",
     "models.catalogPriceBaseUrl": "價格依 Base URL 與 {provider} 相符",
     "models.catalogPriceConsensus": "共有 {support}/{total} 筆紀錄採用此價格",
