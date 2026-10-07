@@ -352,12 +352,12 @@ function useScramble(target: string, running: boolean): string {
   return display;
 }
 
-function PiWebTitle() {
+function TraceXTitle() {
   const [showVersion, setShowVersion] = useState(false);
   const [scrambling, setScrambling] = useState(false);
   const revertTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const target = showVersion ? `${process.env.NEXT_PUBLIC_APP_VERSION ?? "0.0.0"}p${process.env.NEXT_PUBLIC_PI_VERSION ?? "0.0.0"}` : "Pi Web";
+  const target = showVersion ? `${process.env.NEXT_PUBLIC_APP_VERSION ?? "0.0.0"}p${process.env.NEXT_PUBLIC_PI_VERSION ?? "0.0.0"}` : "TraceX";
   const display = useScramble(target, scrambling);
 
   const triggerScramble = useCallback((toVersion: boolean) => {
@@ -380,18 +380,29 @@ function PiWebTitle() {
   useEffect(() => () => { if (revertTimerRef.current) clearTimeout(revertTimerRef.current); }, []);
 
   return (
-    <button
-      onClick={handleClick}
-      style={{
-        background: "none", border: "none", padding: 0, cursor: "default",
-        fontWeight: 700, fontSize: 15, letterSpacing: "-0.01em",
-        color: showVersion ? "var(--accent)" : "var(--text)",
-        fontFamily: "var(--font-mono)",
-        minWidth: "6ch",
-      }}
-    >
-      {display}
-    </button>
+    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      <button
+        onClick={handleClick}
+        style={{
+          background: "none", border: "none", padding: 0, cursor: "default",
+          fontWeight: 700, fontSize: 15, letterSpacing: "-0.01em",
+          color: showVersion ? "var(--accent)" : "var(--text)",
+          fontFamily: "var(--font-mono)",
+          minWidth: "6ch",
+          textAlign: "left",
+        }}
+      >
+        {display}
+      </button>
+      <span
+        style={{
+          fontSize: 10, fontWeight: 400, letterSpacing: "0.04em",
+          color: "var(--text-dim)",
+        }}
+      >
+        AI 自动化运维
+      </span>
+    </div>
   );
 }
 
@@ -1192,7 +1203,7 @@ export function SessionSidebar({ selectedSessionId, onSelectSession, onNewSessio
         }}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-          <PiWebTitle />
+          <TraceXTitle />
           <div style={{ display: "flex", gap: 6 }}>
             <button
               onClick={handleNewSession}
